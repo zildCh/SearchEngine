@@ -37,8 +37,7 @@ class Crawler:
         # Индексируем каждое слово
         for i, word in enumerate(words):
 
-            #word_id = self.getEntryId("wordlist", "word", word, createNew=True)
-            word_id = self.word_dao.add_word(word)  # Добавляем слово в базу, даже если оно уже существует
+            word_id = self.getEntryId("wordlist", "word", word, createNew=True)  # Всегда создаем новое слово
             self.word_location_dao.add_word_location(word_id, url_id, i)
 
 
@@ -142,20 +141,22 @@ class Crawler:
             self.link_words_dao.add_link_word(word_id, link_id)
 
     def getEntryId(self, tableName, fieldName, value, createNew=True):
-        # Проверка наличия записи
-        result = None
+        # Проверка наличия записи только для urllist (чтобы не добавлять один и тот же URL несколько раз)
         if tableName == "urllist":
             result = self.url_dao.get_url_by_value(value)
+            if result:
+                return result  # Возвращаем существующий ID
 
-        if result:
-            return result  # Возвращаем существующий ID
-
-        if createNew:
-            # Создаем новую запись
-            if tableName == "urllist":
-                self.url_dao.add_url(value)  # Добавляем новый URL в базу
+            if createNew:
+                # Создаем новую запись для URL
+                self.url_dao.add_url(value)
                 return self.url_dao.get_url_by_value(value)  # Получаем id вновь добавленного URL
-        return None
+
+        # Для wordlist всегда создаем новую запись
+        if tableName == "wordlist":
+            # Добавляем новое слово в таблицу и возвращаем его ID
+            word_id = self.word_dao.add_word(value)
+            return word_id
 
     def crawl(self, urlList, maxDepth, maxUrls=100):
         visited_urls = set()  # Множество для отслеживания уникальных URL

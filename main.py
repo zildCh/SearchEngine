@@ -15,7 +15,7 @@ def main():
     spider.initDB()
 
     # Начинаем сбор данных с заданного списка URL
-    start_urls = ['https://www.kommersant.ru/', 'https://ria.ru']
+    start_urls = ['https://www.kommersant.ru/']
     spider.crawl(start_urls, maxDepth=2)
 
     spider.analyze_indexing()

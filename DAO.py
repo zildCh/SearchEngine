@@ -1,5 +1,6 @@
 import sqlite3
 from urllib.parse import urlparse
+
 class Database:
     def __init__(self, db_path='search_engine.db'):
         self.conn = sqlite3.connect(db_path)
@@ -62,6 +63,7 @@ class WordListDAO(Database):
     def add_word(self, word, is_filtered=False):
         self.cursor.execute('INSERT INTO wordlist (word, isFiltered) VALUES (?, ?)', (word, is_filtered))
         self.commit()
+        return self.cursor.lastrowid
 
     def get_word(self, word_id):
         self.cursor.execute('SELECT * FROM wordlist WHERE id = ?', (word_id,))
