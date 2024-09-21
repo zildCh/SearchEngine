@@ -5,6 +5,8 @@
 from DAO import UrlListDAO
 from DBcreate import create_db
 from crawler import Crawler
+
+
 def main():
     # Добавление URL
     create_db()
@@ -15,11 +17,13 @@ def main():
     spider.initDB()
 
     # Начинаем сбор данных с заданного списка URL
-    start_urls = ['https://www.kommersant.ru/']
+    start_urls = ['https://www.kommersant.ru/', 'https://history.eco/']
     spider.crawl(start_urls, maxDepth=2)
 
     spider.analyze_indexing()
     spider.plot_graphs()
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
