@@ -97,7 +97,7 @@ class Crawler:
         print("Топ 20 доменов:", domains)
 
         # 20 наиболее часто встречающихся слов
-        frequent_words = self.word_dao.get_top_words(limit=20)
+        frequent_words = self.word_location_dao.get_top_words(limit=20)
         print("Топ 20 слов:", frequent_words)
 
 
@@ -152,11 +152,18 @@ class Crawler:
                 self.url_dao.add_url(value)
                 return self.url_dao.get_url_by_value(value)  # Получаем id вновь добавленного URL
 
-        # Для wordlist всегда создаем новую запись
+        # Для wordlist добавляем уникальные слова
         if tableName == "wordlist":
-            # Добавляем новое слово в таблицу и возвращаем его ID
-            word_id = self.word_dao.add_word(value)
-            return word_id
+            # Проверяем, существует ли слово в таблице
+            existing_word = self.word_dao.get_word_by_value(value)
+            if existing_word:
+                return existing_word  # Возвращаем существующий ID слова
+
+            if createNew:
+                # Добавляем новое слово в таблицу и возвращаем его ID
+                word_id = self.word_dao.add_word(value)
+                return word_id
+        return None
 
     def crawl(self, urlList, maxDepth, maxUrls=100):
         visited_urls = set()  # Множество для отслеживания уникальных URL
@@ -174,7 +181,7 @@ class Crawler:
                     print("Достигнут лимит обработанных URL.")
                     break
 
-                if url in visited_urls:
+                if url in visited_urls:   #сделать отдельную таблицу visited
                     continue
 
                 visited_urls.add(url)
@@ -193,7 +200,7 @@ class Crawler:
                 self.addIndex(soup, url)
 
                 # Обрабатываем ссылки на странице
-                for link in soup.find_all('a'):
+                for link in soup.find_all('a', href=True):
                     href = link.get('href')
                     if href and not href.startswith('#') and not href.startswith('mailto:') and not href.endswith('.apk'):
                         full_url = requests.compat.urljoin(url, href)

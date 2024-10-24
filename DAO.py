@@ -12,6 +12,55 @@ class Database:
     def close(self):
         self.conn.close()
 
+class PageRankDAO(Database):
+    def clear_page_rank(self):
+        self.conn.execute('DROP TABLE IF EXISTS pagerank')
+        self.conn.execute("""CREATE TABLE IF NOT EXISTS pagerank(
+                             row_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                             url_id INTEGER,
+                             score REAL
+                         );""")
+        self.commit()
+
+    def create_indexes(self):
+        self.conn.execute("DROP INDEX IF EXISTS wordidx;")
+        self.conn.execute("DROP INDEX IF EXISTS urlidx;")
+        self.conn.execute("DROP INDEX IF EXISTS wordurlidx;")
+        self.conn.execute("DROP INDEX IF EXISTS urltoidx;")
+        self.conn.execute("DROP INDEX IF EXISTS urlfromidx;")
+        self.conn.execute('CREATE INDEX IF NOT EXISTS wordidx ON wordlist(word)')
+        self.conn.execute('CREATE INDEX IF NOT EXISTS urlidx ON urllist(url)')
+        self.conn.execute('CREATE INDEX IF NOT EXISTS wordurlidx ON wordlocation(word_id)')
+        self.conn.execute('CREATE INDEX IF NOT EXISTS urltoidx ON link (to_url_id)')
+        self.conn.execute('CREATE INDEX IF NOT EXISTS urlfromidx ON link (from_url_id)')
+        self.conn.execute("DROP INDEX IF EXISTS rankurlididx;")
+        self.conn.execute('CREATE INDEX IF NOT EXISTS rankurlididx ON pagerank(url_id)')
+        self.commit()
+
+    def initialize_page_rank(self):
+        self.conn.execute('INSERT INTO pagerank (url_id, score) SELECT id, 1.0 FROM urllist')
+        self.commit()
+
+    def get_all_urlids(self):
+        return [row[0] for row in self.conn.execute("SELECT id FROM urllist").fetchall()]
+
+    def get_linking_urls(self, urlid):
+        return [row[0] for row in self.conn.execute("""
+            SELECT DISTINCT from_url_id FROM link WHERE to_url_id = ?
+        """, (urlid,)).fetchall()]
+
+    def get_page_rank(self, fromid):
+        return self.conn.execute("SELECT score FROM pagerank WHERE url_id = ?", (fromid,)).fetchone()[0]
+
+    def get_link_count(self, fromid):
+        return self.conn.execute("""
+            SELECT COUNT(*) FROM link WHERE from_url_id = ?
+        """, (fromid,)).fetchone()[0]
+
+    def update_page_rank(self, urlid, pr):
+        self.conn.execute('UPDATE pagerank SET score = ? WHERE url_id = ?', (pr, urlid))
+        self.commit()
+
 # DAO для таблицы urllist
 class UrlListDAO(Database):
     def add_url(self, url):
@@ -78,6 +127,12 @@ class WordListDAO(Database):
         cursor.execute("SELECT COUNT(*) FROM wordlist")
         return cursor.fetchone()[0]
 
+    def get_word_id(self, word):
+        """ Retrieve the row ID for a specific word """
+        self.cursor.execute("SELECT rowid FROM wordlist WHERE word = ? LIMIT 1;", (word,))
+        result = self.cursor.fetchone()
+        return result[0] if result else None
+
 
     def get_top_words(self, limit=20):
         cursor = self.conn.cursor()
@@ -117,6 +172,60 @@ class WordLocationDAO(Database):
             SELECT * FROM wordlocation WHERE url_id = ?
         ''', (url_id,))
         return cursor.fetchall()
+
+    def get_top_words(self, limit):
+        # SQL-запрос для получения топ 20 слов на основе частоты их появления в таблице wordlocation
+        query = '''
+            SELECT w.word, COUNT(wl.word_id) as frequency
+            FROM wordlist w
+            JOIN wordlocation wl ON w.id = wl.word_id
+            GROUP BY wl.word_id
+            ORDER BY frequency DESC
+            LIMIT ?
+        '''
+        self.cursor.execute(query, (limit,))
+        top_words = self.cursor.fetchall()
+
+        return top_words
+
+    def get_match_rows(self, wordsidList):
+        """
+        Формирует и выполняет SQL-запрос для поиска всех совпадений слов в проиндексированных URL-адресах.
+        :param wordsidList: список идентификаторов слов.
+        :return: список совпадений (urlid, loc_q1, loc_q2, ...).
+        """
+        if not wordsidList:
+            return []
+
+        # Создание частей SQL-запроса
+        sqlpart_Name = ["w0.url_id AS url_id", "w0.location AS loc_0"]
+        sqlpart_Join = []
+        sqlpart_Condition = ["w0.word_id = ?"]
+
+        # Формирование частей SQL-запроса
+        for wordIndex, wordID in enumerate(wordsidList[1:], start=1):
+            # Добавляем местоположение для последующих слов
+            sqlpart_Name.append(f"w{wordIndex}.location AS loc_{wordIndex}")
+            sqlpart_Join.append(f"INNER JOIN wordlocation w{wordIndex} ON w0.url_id = w{wordIndex}.url_id")
+            sqlpart_Condition.append(f"w{wordIndex}.word_id = ?")
+
+        # Объединение частей SQL-запроса
+        sqlFullQuery = f"""
+            SELECT {', '.join(sqlpart_Name)}
+            FROM wordlocation w0
+            {' '.join(sqlpart_Join)}
+            WHERE {' AND '.join(sqlpart_Condition)}
+        """
+
+        # Выполнение SQL-запроса с передачей идентификаторов слов в качестве параметров
+        return self.execute_sql(sqlFullQuery, tuple(wordsidList))
+
+    def execute_sql(self, sql_query, params=()):
+        """ Выполняет SQL-запрос с параметрами и возвращает все результаты """
+        cursor = self.conn.cursor()
+        cursor.execute(sql_query, params)
+        return cursor.fetchall()
+
 # DAO для таблицы link
 class LinkDAO(Database):
     def add_link(self, from_url_id, to_url_id):
