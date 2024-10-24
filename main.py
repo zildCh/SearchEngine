@@ -17,19 +17,22 @@ def main():
     # Инициализируем БД
     spider.initDB()
 
-    rowsLoc, wordsidList = searcher.getMatchRows("я время")
-    #searcher.getWordsIds("я время")
-    print (wordsidList)
-    for location in rowsLoc:
-        print(location)
+    # rowsLoc, wordsidList = searcher.getMatchRows()
+    # #searcher.getWordsIds("я время")
+    #
+    # print (wordsidList)
+    # for location in rowsLoc:
+    #     print(location)
+
+    #searcher.getSortedList("восток")
     # Начинаем сбор данных с заданного списка URL
     #start_urls = ['https://www.kommersant.ru/', 'https://history.eco/']
     #spider.crawl(start_urls, maxDepth=2)
 
     #spider.analyze_indexing()
     #spider.plot_graphs()
-
-
+    searcher.calculatePageRank()
+    get_page_rank
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
