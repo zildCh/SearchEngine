@@ -17,10 +17,10 @@ def main():
     # Инициализируем БД
     spider.initDB()
 
-    # rowsLoc, wordsidList = searcher.getMatchRows()
-    # #searcher.getWordsIds("я время")
-    #
-    # print (wordsidList)
+
+    #rowsLoc, wordsidList = searcher.getMatchRows("список новостей")
+
+    # print(wordsidList)
     # for location in rowsLoc:
     #     print(location)
 
@@ -31,8 +31,11 @@ def main():
 
     #spider.analyze_indexing()
     #spider.plot_graphs()
-    searcher.calculatePageRank()
-    get_page_rank
+    #searcher.calculatePageRank()
+
+    searcher.getMatchRows("список новостей")
+    searcher.getSortedList("список новостей")
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()

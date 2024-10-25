@@ -41,6 +41,11 @@ class PageRankDAO(Database):
         self.conn.execute('INSERT INTO pagerank (url_id, score) SELECT id, 1.0 FROM urllist')
         self.commit()
 
+    def get_all_page_rank(self):
+        """Возвращает все значения PageRank из таблицы pagerank."""
+        cursor = self.conn.execute('SELECT url_id, score FROM pagerank')
+        return cursor.fetchall()
+
     def get_all_urlids(self):
         return [row[0] for row in self.conn.execute("SELECT id FROM urllist").fetchall()]
 
@@ -50,7 +55,8 @@ class PageRankDAO(Database):
         """, (urlid,)).fetchall()]
 
     def get_page_rank(self, fromid):
-        return self.conn.execute("SELECT score FROM pagerank WHERE url_id = ?", (fromid,)).fetchone()[0]
+        self.cursor.execute("SELECT score FROM pagerank WHERE url_id = ?", (fromid,))
+        return self.cursor.fetchone()
 
     def get_link_count(self, fromid):
         return self.conn.execute("""
@@ -107,6 +113,7 @@ class UrlListDAO(Database):
         if result:
             return result[0]  # Возвращаем id, если URL найден
         return None  # Возвращаем None, если URL не найден
+
 # DAO для таблицы wordlist
 class WordListDAO(Database):
     def add_word(self, word, is_filtered=False):
@@ -172,6 +179,17 @@ class WordLocationDAO(Database):
             SELECT * FROM wordlocation WHERE url_id = ?
         ''', (url_id,))
         return cursor.fetchall()
+
+    def get_words_by_url(self, url_id):
+        # Получаем все слова, связанные с данным url_id
+        self.cursor.execute('''
+               SELECT w.word 
+               FROM wordlist w
+               JOIN wordlocation wl ON w.id = wl.word_id
+               WHERE wl.url_id = ?
+           ''', (url_id,))
+        return [row[0] for row in self.cursor.fetchall()]  # Возвращаем список слов
+
 
     def get_top_words(self, limit):
         # SQL-запрос для получения топ 20 слов на основе частоты их появления в таблице wordlocation
