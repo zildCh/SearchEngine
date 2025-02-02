@@ -6,10 +6,10 @@ A lightweight **search engine** built in Python that **crawls web pages**, index
 
 ## Key Features  
 
-✅ **Web Crawler** 🕷 - Extracts and indexes web pages  
-✅ **SQLite Database** 🗄 - Stores indexed pages and word mappings  
-✅ **Search Module** 🔎 - Processes user queries  
-✅ **Ranking Algorithms** 📊 - Uses **word positions** & **PageRank**  
+**Web Crawler** 🕷 - Extracts and indexes web pages  
+**SQLite Database** 🗄 - Stores indexed pages and word mappings  
+**Search Module** 🔎 - Processes user queries  
+**Ranking Algorithms** 📊 - Uses **word positions** & **PageRank**  
 
 ---
 
